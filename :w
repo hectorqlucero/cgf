@@ -1,0 +1,125 @@
+(ns sk.handlers.home.view
+  (:require [sk.models.util :refer [build-button build-field build-form]]
+            [hiccup.core :refer [html]]
+            [sk.handlers.home.model :refer [get-rows ventas-rows somos-rows]]))
+
+(def rows
+  [{:enlace "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%3Fid%3DOIP.WCbSGzhrQovBon1MD6FswwHaDe%26pid%3DApi&f=1&ipt=09428b230fc331e5fb949ac869947e4eeeb2c746449755233cc1cf0f0d7324af&ipo=images" :first 1}
+   {:enlace "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.moderndata.com%2Fwp-content%2Fuploads%2F2016%2F04%2Fcomputer-network-services.png&f=1&nofb=1&ipt=60d38dd7ecf5f7b11c24f0ae6ad1601b4f9816f485197ddb33a9b90d005d915d&ipo=images" :first 0}
+   {:enlace "https://southpressagency.com/wp-content/uploads/2018/10/Pc-Repair-Tech.jpg" :first 0}
+   {:enlace "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fwww.nobleflyers.com%2Fwp-content%2Fuploads%2F2018%2F01%2Fcomputer-service.png&f=1&nofb=1&ipt=d9d2080aaed6af9120fc88d36c0aba589f02f674a5e8a9f991917a06ec8267c9&ipo=images" :first 0}
+   {:enlace "https://2.bp.blogspot.com/-51C4ZTGEkc0/WWe41poGI-I/AAAAAAAAMTw/Mb87_4aFKBQFGm9nwok9Eh0Fd7Akq7WcACLcBGAs/s1600/network-1.png" :first 0}
+   {:enlace "https://i.pinimg.com/originals/8a/03/68/8a03686b60f26f6eb479885253c01e57.jpg" :first 0}])
+
+(defn slideshow-body [row]
+  (list
+   (if (= (:first row) 1)
+     [:div.carousel-item.active [:img.d-block.w100 {:src (:enlace row)
+                                                    :alt "CM"}]]
+     [:div.carousel-item [:img.d-block.w100 {:src (:enlace row) :alt "CM"}]])))
+
+(defn build-slideshow []
+  (list
+   [:div.carousel.slide {:id "cm"
+                         :data-ride "carousel"}
+    [:div.carousel-inner
+     (map slideshow-body rows)]]))
+
+(defn main-view []
+  (html
+   [:div.container
+    (build-slideshow)]))
+
+(defn build-main-body [row]
+  (let [header (:d1 row)
+        detail (:d2 row)]
+    (list
+     [:div.col-sm
+      [:div.card {:style "width: 18rem;"}
+       [:div.card-body
+        [:h5 header]
+        [:p.card-text detail]]]])))
+
+(defn asistencia-view []
+  (list
+   [:div.container {:style "margin-top:30px;"}
+    [:div.row
+     (map build-main-body (get-rows))]]))
+
+(defn ventas-view []
+  (list
+   [:div.container {:style "margin-top:30px;"}
+    [:div.row
+     (map build-main-body (ventas-rows))]]))
+
+(defn somos-view []
+  (list
+   [:div.container {:style "text-align: justify;text-justify:inter-word;margin-top:30px;"}
+    (list
+     (map (fn [row]
+            (let [empresa [:span {:style "font-weight: bold;font-size:2.0 rem;"} [:strong (:empresa row)]]
+                  mision (clojure.string/replace (:meta row) #"\r\n" "<br>")]
+              [:p mision])) (somos-rows)))]))
+
+(defn login-view [token]
+  (build-form
+   "Conectar"
+   token
+   (list
+    (build-field
+     {:id "username"
+      :name "username"
+      :class "easyui-textbox"
+      :prompt "Email aqui..."
+      :validType "email"
+      :data-options "label:'Email:',labelPosition:'top',required:true,width:'100%'"})
+    (build-field
+     {:id "password"
+      :name "password"
+      :class "easyui-passwordbox"
+      :prompt "Contraseña aqui..."
+      :data-options "label:'Contraseña:',labelPosition:'top',required:true,width:'100%'"})
+    (build-button
+     {:href "javascript:void(0)"
+      :id "submit"
+      :text "Acceder al sitio"
+      :class "easyui-linkbutton c6"
+      :onClick "submitForm()"}))
+   (list
+    [:div {:style "margin-bottom:10px;"}
+     [:a {:href "/register"} "Clic para registrarse"]]
+    [:div {:style "margin-bottom:10px;"}
+     [:a {:href "/rpaswd"} "Clic para resetear su contraseña"]])))
+
+(defn login-script []
+  [:script
+   "
+    function submitForm() {
+        $('.fm').form('submit', {
+            onSubmit:function() {
+                if($(this).form('validate')) {
+                  $('a#submit').linkbutton('disable');
+                  $('a#submit').linkbutton({text: 'Processando!'});
+                }
+                return $(this).form('enableValidation').form('validate');
+            },
+            success: function(data) {
+                try {
+                    var dta = JSON.parse(data);
+                    if(dta.hasOwnProperty('url')) {
+                        window.location.href = dta.url;
+                    } else if(dta.hasOwnProperty('error')) {
+                        $.messager.show({
+                            title: 'Error: ',
+                            msg: dta.error
+                        });
+                        $('a#submit').linkbutton('enable');
+                        $('a#submit').linkbutton({text: 'Acceder al sitio'});
+                    }
+                } catch(e) {
+                    console.error('Invalid JSON');
+                }
+            }
+        });
+    }
+   "])
